@@ -1,0 +1,165 @@
+﻿@model IEnumerable<EmployeeAbsence>
+
+    <div>
+        <h3>Табель отсутствия на работе сотрудников</h3>
+      
+        <form asp-controller="Home" asp-action="Index">
+            <table>
+                <thead>
+                <tr>
+                    <th>
+                        Имя:<input id="employeeNameSearchId" type="text" name="employeeNameSearch" />
+                        Дата:<input id="dateSearchId" type="date" name="dateSearch" />
+                        Время:<input id="timeSearchId" type="text" name="timeSearch" />
+                        Причина:<input id="reasonSearchId" type="text" name="reasonSearch" />
+                        <input type="submit" value="Поиск" />
+                    </th>
+                    <th>
+                        <input id="clearSearch" type="submit" value="Очистить" />
+                    </th>
+                </tr>
+                </thead>
+            </table>
+        </form>
+                    
+
+        <table id="tblAbsences" class="table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th style="width:120px">ФИО</th>
+                    <th style="width:120px">Должность</th>
+                    <th style="width:120px">Дата</th>
+                    <th style="width:120px">Время</th>
+                    <th style="width:120px">Причина</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="tbAbsences">
+                @foreach (EmployeeAbsence b in Model)
+                {
+                    <tr>
+                        <td style="width:120px"><p>@b.Employee.Name</p></td>
+                        <td style="width:120px"><p>@b.Employee.Position.Name</p></td>
+                        <td style="width:120px"><p>@b.Date.ToShortDateString()</p></td>
+                        <td style="width:120px"><p>@b.AbsenceHours</p></td>
+                        <td style="width:120px"><p>@b.Reason</p></td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td id="txtName">
+                        @Html.DropDownList("employeeId", ViewBag.Employees as SelectList, new { @onchange = "getVal()" })
+                        <input type="hidden" id="hdnEmployeeName" name="EmployeeName" />
+                    </td>
+                    <td><input type="text" readonly="true" id="txtPosition" /></td>
+                    <td><input type="date" id="txtDate" /></td>
+                    <td><input type="text" id="txtTime" /></td>
+                    <td><input type="text" id="txtReason" /></td>
+                    <td><input type="button" id="btnAdd" value="Добавить" /></td>
+                </tr>
+            </tfoot>
+        </table>
+        <br />
+    </div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#employeeNameSearchId").val(@ViewBag.EmployeeNameSearch);
+            $("#dateSearchId").val('@ViewBag.DateSearch');
+            $("#timeSearchId").val(@ViewBag.TimeSearch);
+            $("#reasonSearchId").val(@ViewBag.ReasonSearch);
+            $.ajax({
+                url: '@Url.Action("GetPositionName", "Home")',
+                data: {
+                    id: $("#employeeId").val()
+                },
+                type: 'GET',
+                success: function(data) {
+                    $("#txtPosition").val(data);
+                }
+            });
+        });
+
+        function getVal() {
+            var selectedVal = document.getElementById("employeeId").value;
+            console.log(selectedVal);
+            $.ajax({
+                url: '@Url.Action("GetPositionName", "Home")',
+                data: {
+                    id: $("#employeeId").val()
+                },
+                type: 'GET',
+                success: function(data) {
+                    $("#txtPosition").val(data);
+                }
+            });
+        };
+
+        $("body").on("click", "#clearSearch", function() {
+            $("#employeeNameSearchId").val("");
+            $("#dateSearchId").val(null);
+            $("#timeSearchId").val("");
+            $("#reasonSearchId").val("");
+        });
+        $("body").on("click",
+            "#btnAdd",
+            function() {
+
+                var selectedVal = document.getElementById("employeeId").value;
+                console.log(selectedVal);
+                $.ajax({
+                    url: '@Url.Action("SaveAbsence", "Home")',
+                    data: {
+                        employeeId: $("#employeeId").val(),
+                        date: $("#txtDate").val(),
+                        time: $("#txtTime").val(),
+                        reason: $("#txtReason").val()
+                    },
+                    type: 'POST',
+                    success: function(data) {
+                        var txtName = $("#employeeId");
+                        var txtPosition = $("#txtPosition");
+                        var txtDate = $("#txtDate");
+                        var txtTime = $("#txtTime");
+                        var txtReason = $("#txtReason");
+                        console.log($("#employeeId").val());
+
+                        //ссылка на tbody тела
+                        var tBody = $("#tblAbsences > TBODY")[0];
+
+                        //добавление строки
+                        var row = tBody.insertRow(-1);
+
+                        //ячейка для имени сотрудника
+                        var cell = $(row.insertCell(-1));
+                        cell.html($("#employeeId option:selected").text());
+                        //ячейка для наименования должности сотрудника
+                        cell = $(row.insertCell(-1));
+                        cell.html(txtPosition.val());
+                        //чейка даты
+                        cell = $(row.insertCell(-1));
+                        cell.html(txtDate.val());
+                        //ячейка времени отсутствия
+                        cell = $(row.insertCell(-1));
+                        cell.html(txtTime.val());
+                        //причина
+                        cell = $(row.insertCell(-1));
+                        cell.html(txtReason.val());
+
+                        //очистка значений полей для ввода
+                        txtName.val("");
+                        txtPosition.val("");
+                        txtDate.val("");
+                        txtTime.val("");
+                        txtReason.val("");
+                    },
+                    error: function(data) {
+                        alert(data['responseText']);
+                    }
+                });
+            });
+    </script>
+}
